@@ -5,7 +5,7 @@ from distutils.core import setup
 setup(name='fluiddb.py',
       version='1.0',
       description="A thin wrapper for FluidDB's RESTful API",
-      author='Nicholas Tollervey (based upon work by Sanghyeon Seo',
+      author='Nicholas Tollervey (based upon work by Sanghyeon Seo)',
       author_email='ntoll@ntoll.org',
       url='http://fluidinfo.com',
       py_modules=['fluiddb',],
