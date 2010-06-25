@@ -1,0 +1,18 @@
+This is a very thin wrapper on top of the FluidDB RESTful API. FluidDB is an
+openly writable platform for the web of things. More information about FluidDB
+can be found here:
+
+http://fluidinfo.com/
+
+The RESTful API is described here:
+
+http://api.fluidinfo.com/fluidDB/api/*/*/*
+
+Originally based upon work by Seo Sanghyeon found here:
+
+http://bitbucket.org/sanxiyn/fluidfs
+
+This module has been extracted, extended and unit-tests were added by Nicholas
+Tollervey (http://ntoll.org)
+
+Feedback welcome!
