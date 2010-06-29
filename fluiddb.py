@@ -63,7 +63,7 @@ def call(method, path, body=None, mime=None, **kw):
     if isinstance(body, dict):
         # jsonify dicts
         headers['content-type'] = 'application/json'
-        body = json.dumps(body)
+        body = json.dumps(body, ensure_ascii=False)
     elif method.upper() == 'PUT' and path.startswith('/objects/'):
         # A PUT to an "/objects/" resource means that we're handling 
         # tag-values. Make sure we handle primitive/opaque value types
@@ -75,13 +75,15 @@ def call(method, path, body=None, mime=None, **kw):
             # primitive values need to be json-ified and have the correct
             # content-type set
             headers['content-type'] = 'application/vnd.fluiddb.value+json'
-            body = json.dumps(body)
+            body = json.dumps(body, ensure_ascii=False)
         else:
             # No way to work out what content-type to send to FluidDB so
             # bail out.
             raise TypeError("You must supply a mime-type")
     response, content = http.request(url, method, body, headers)
-    if response['content-type'].startswith('application/json'):
+    if ((response['content-type'] == 'application/json' or
+        response['content-type'] == 'application/vnd.fluiddb.value+json')
+        and content):
         result = json.loads(content)
     else:
         result = content

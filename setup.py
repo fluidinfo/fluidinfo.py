@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='fluiddb.py',
-      version='1.0.1',
+      version='1.0.3',
       description="A thin wrapper for FluidDB's RESTful API",
       author='Nicholas Tollervey (based upon work by Sanghyeon Seo)',
       author_email='ntoll@ntoll.org',

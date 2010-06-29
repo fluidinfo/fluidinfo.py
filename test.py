@@ -99,6 +99,40 @@ class TestFluidDB(unittest.TestCase):
         self.assertEqual('200', result[0]['status'])
         # make sure the result has the expected description field
         self.assertTrue(result[1].has_key('description'))
+        # finally we need to make sure that primitive values returned from
+        # fluidDB are turned from their json representation to their 
+        # Pythonic form
+        new_namespace = str(uuid.uuid4())
+        new_tag = str(uuid.uuid4())
+        ns_body = {'description': 'a test namespace',
+                   'name': new_namespace}
+        tag_body = {'description': 'a test tag', 'name': new_tag,
+                    'indexed': False}
+        # create a namespace and tag to use in a bit
+        result = fluiddb.call('POST', '/namespaces/test', ns_body)
+        self.assertEqual('201', result[0]['status'])
+        self.assertTrue(result[1].has_key('id'))
+        ns_id = result[1]['id'] # for later use
+        result = fluiddb.call('POST', '/tags/test/' + new_namespace,
+                              tag_body)
+        self.assertEqual('201', result[0]['status'])
+        self.assertTrue(result[1].has_key('id'))
+        path = '/'+'/'.join(['objects', ns_id, 'test', new_namespace,
+                             new_tag])
+        primitives = [1, 1.1, u'foo', True, None, ['a', 'b', u'c']]
+        for primitive in primitives:
+            result = fluiddb.call('PUT', path, primitive)
+            self.assertEqual('204', result[0]['status'])
+            # GET the new tag value and check it gets translated back to
+            # the correct type
+            result = fluiddb.call('GET', path)
+            self.assertEqual('application/vnd.fluiddb.value+json',
+                             result[0]['content-type'])
+            self.assertTrue(isinstance(result[1], type(primitive)))
+        # Housekeeping
+        fluiddb.call('DELETE',
+                     '/tags/test/' + new_namespace + '/' + new_tag)
+        fluiddb.call('DELETE', '/namespaces/test/'+new_namespace)
 
     def test_call_HEAD(self):
         fluiddb.login(USERNAME, PASSWORD)
@@ -127,11 +161,13 @@ class TestFluidDB(unittest.TestCase):
                               tag_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
-        # Make sure that if the body isn't a dict and no mime is specified
-        # it is sent as either a jsonified primitive type or
-        # application/octet-stream
         path = '/'+'/'.join(['objects', ns_id, 'test', new_namespace,
                              new_tag])
+        # Make sure that primitive types are json encoded properly with
+        # the correct mime-type, dicts are translated to json, the 
+        # mime-type argument for opaque types is used properly and if
+        # no mime-type is supplied and the previous checks are not met
+        # an appropriate exception is raised.
         primitives = [1, 1.1, 'foo', u'foo', True, None, ['a', 'b', u'c']]
         for primitive in primitives:
             result = fluiddb.call('PUT', path, primitive)
@@ -141,11 +177,15 @@ class TestFluidDB(unittest.TestCase):
             result = fluiddb.call('HEAD', path)
             self.assertEqual('application/vnd.fluiddb.value+json',
                              result[0]['content-type'])
+        # dicts are json encoded
+        result = fluiddb.call('PUT', path, {'foo': 'bar'})
+        # check again with HEAD verb
+        result = fluiddb.call('HEAD', path)
+        self.assertEqual('application/json', result[0]['content-type'])
         # Make sure that the body and mime args work as expected (mime
         # overrides the primitive string type making the value opaque)
         result = fluiddb.call('PUT', path, '<html><body><h1>Hello,'\
                               'World!</h1></body></html>', 'text/html')
-        # check again with HEAD verb
         result = fluiddb.call('HEAD', path)
         self.assertEqual('text/html', result[0]['content-type'])
         # unspecified mime-type on a non-primitive value results in an 
