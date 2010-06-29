@@ -2,8 +2,8 @@ import fluiddb
 import uuid
 import unittest
 
-# Generic test user created on the Sandbox for the express purpose of running
-# unit tests
+# Generic test user created on the Sandbox for the express purpose of
+# running unit tests
 USERNAME = 'test'
 PASSWORD = 'test'
 
@@ -51,13 +51,31 @@ class TestFluidDB(unittest.TestCase):
                               'name': new_namespace})
         self.assertEqual('401', result[0]['status'])
 
-    # With the following tests we're ensuring that the arguments passed into the
-    # call method are used correctly.
+    def test_isprimitive(self):
+        """
+        See:
+        http://doc.fluidinfo.com/fluidDB/api/tag-values.html
+        &
+        http://doc.fluidinfo.com/fluidDB/api/http.html#payloads-containing-tag-values
+        For explanation of primitive values
+        """
+        # check the good case
+        primitives = [1, 1.1, 'foo', u'foo', True, None, ['a', 'b', u'c']]
+        for primitive in primitives:
+            self.assertEqual(True, fluiddb.isprimitive(primitive))
+        # check a list containing something other than strings fails
+        self.assertEqual(False, fluiddb.isprimitive(['a', 1, 'b']))
+        # check other types fail
+        self.assertEqual(False, fluiddb.isprimitive(dict()))
+
+    # With the following tests we're ensuring that the arguments passed
+    # into the call method are used correctly.
 
     def test_call_POST(self):
         fluiddb.login(USERNAME, PASSWORD)
         new_namespace = str(uuid.uuid4())
-        ns_body = {'description': 'a test namespace', 'name': new_namespace}
+        ns_body = {'description': 'a test namespace',
+                   'name': new_namespace}
         # Make sure that if the body is a dict it gets translated to json
         result = fluiddb.call('POST', '/namespaces/test', ns_body)
         self.assertEqual('201', result[0]['status'])
@@ -75,7 +93,7 @@ class TestFluidDB(unittest.TestCase):
         # ...and we have the expected id
         self.assertTrue(result[1].has_key('id'))
         # The same call WITH query string args to append to the URL
-        # i.e. we'll get /namespaces/test?returnDescription=True as the path
+        # eg we'll get /namespaces/test?returnDescription=True as the path
         result = fluiddb.call('GET', '/namespaces/test', None, None,
                               returnDescription = True)
         self.assertEqual('200', result[0]['status'])
@@ -96,7 +114,8 @@ class TestFluidDB(unittest.TestCase):
         fluiddb.login(USERNAME, PASSWORD)
         new_namespace = str(uuid.uuid4())
         new_tag = str(uuid.uuid4())
-        ns_body = {'description': 'a test namespace', 'name': new_namespace}
+        ns_body = {'description': 'a test namespace',
+                   'name': new_namespace}
         tag_body = {'description': 'a test tag', 'name': new_tag,
                     'indexed': False}
         # create a namespace and tag to use in a bit
@@ -104,25 +123,37 @@ class TestFluidDB(unittest.TestCase):
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
         ns_id = result[1]['id'] # for later use
-        result = fluiddb.call('POST', '/tags/test/' + new_namespace, tag_body)
+        result = fluiddb.call('POST', '/tags/test/' + new_namespace,
+                              tag_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
-        # Make sure that if the body isn't a dict and no mime is specified it
-        # is set as text/plain
-        path = '/'+'/'.join(['objects', ns_id, 'test', new_namespace, new_tag])
-        result = fluiddb.call('PUT', path, "some text")
-        self.assertEqual('204', result[0]['status'])
-        # call HEAD verb on that tag value to get the mime-type from FluidDB
-        result = fluiddb.call('HEAD', path)
-        self.assertEqual('text/plain', result[0]['content-type'])
-        # Make sure that the body and mime args work as expected
+        # Make sure that if the body isn't a dict and no mime is specified
+        # it is sent as either a jsonified primitive type or
+        # application/octet-stream
+        path = '/'+'/'.join(['objects', ns_id, 'test', new_namespace,
+                             new_tag])
+        primitives = [1, 1.1, 'foo', u'foo', True, None, ['a', 'b', u'c']]
+        for primitive in primitives:
+            result = fluiddb.call('PUT', path, primitive)
+            self.assertEqual('204', result[0]['status'])
+            # call HEAD verb on that tag value to get the mime-type from 
+            # FluidDB
+            result = fluiddb.call('HEAD', path)
+            self.assertEqual('application/vnd.fluiddb.value+json',
+                             result[0]['content-type'])
+        # Make sure that the body and mime args work as expected (mime
+        # overrides the primitive string type making the value opaque)
         result = fluiddb.call('PUT', path, '<html><body><h1>Hello,'\
                               'World!</h1></body></html>', 'text/html')
         # check again with HEAD verb
         result = fluiddb.call('HEAD', path)
         self.assertEqual('text/html', result[0]['content-type'])
+        # unspecified mime-type on a non-primitive value results in an 
+        # exception
+        self.assertRaises(TypeError, fluiddb.call, 'PUT', path, object())
         # Housekeeping
-        fluiddb.call('DELETE', '/tags/test/' + new_namespace + '/' + new_tag)
+        fluiddb.call('DELETE',
+                     '/tags/test/' + new_namespace + '/' + new_tag)
         fluiddb.call('DELETE', '/namespaces/test/'+new_namespace)
 
     def test_call_DELETE(self):
