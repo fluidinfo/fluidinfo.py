@@ -10,7 +10,7 @@ See README, AUTHORS and LICENSE for more information
 import sys
 import httplib2
 import urllib
-import numbers
+import types
 if sys.version_info < (2, 6):
     import simplejson as json
 else:
@@ -22,6 +22,10 @@ else:
 MAIN = 'https://fluiddb.fluidinfo.com'
 SANDBOX = 'https://sandbox.fluidinfo.com'
 instance = MAIN
+
+ITERABLE_TYPES = set((list, tuple))
+SERIALIZABLE_TYPES = set((types.NoneType, bool, int, float, str, unicode, list,
+                          tuple))
 
 global_headers = {
     'Accept': '*/*',
@@ -63,7 +67,7 @@ def call(method, path, body=None, mime=None, **kw):
     if isinstance(body, dict):
         # jsonify dicts
         headers['content-type'] = 'application/json'
-        body = json.dumps(body, ensure_ascii=False)
+        body = json.dumps(body)
     elif method.upper() == 'PUT' and path.startswith('/objects/'):
         # A PUT to an "/objects/" resource means that we're handling 
         # tag-values. Make sure we handle primitive/opaque value types
@@ -75,7 +79,7 @@ def call(method, path, body=None, mime=None, **kw):
             # primitive values need to be json-ified and have the correct
             # content-type set
             headers['content-type'] = 'application/vnd.fluiddb.value+json'
-            body = json.dumps(body, ensure_ascii=False)
+            body = json.dumps(body)
         else:
             # No way to work out what content-type to send to FluidDB so
             # bail out.
@@ -103,13 +107,10 @@ def isprimitive(body):
     For an explanation of the difference between primitive and opaque
     values.
     """
-    if (isinstance(body, numbers.Number) or isinstance(body, basestring) or
-           isinstance(body, bool) or body == None):
-        return True
-    elif isinstance(body, list):
-        # Check the list contains only strings. 
-        for item in body:
-            if not isinstance(item, basestring):
+    bodyType = type(body)
+    if bodyType in SERIALIZABLE_TYPES:
+        if bodyType in ITERABLE_TYPES:
+            if not all(isinstance(x, basestring) for x in body):
                 return False
         return True
     else:
