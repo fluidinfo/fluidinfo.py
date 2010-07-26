@@ -3,13 +3,14 @@
 from distutils.core import setup
 
 setup(name='fluiddb.py',
-      version='1.0.4',
+      version='1.0.5',
       description="A thin wrapper for FluidDB's RESTful API",
       author='Nicholas Tollervey (based upon work by Sanghyeon Seo)',
       author_email='ntoll@ntoll.org',
       url='http://fluidinfo.com',
       py_modules=['fluiddb',],
       license='MIT',
+      requires=['httplib2',],
       long_description=open('README').read(),
       classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Web Environment',
