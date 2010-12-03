@@ -41,7 +41,7 @@ class TestFluidDB(unittest.TestCase):
         self.assertEqual('200', result[0]['status'])
         # Log out (this should clear the Authorization header)
         fluiddb.logout()
-        # We should still e able to do anonymous calls
+        # We should still be able to do anonymous calls
         result = fluiddb.call('GET', '/users/test')
         self.assertEqual('200', result[0]['status'])
         # but we can't do anything that requires us to be authenticated
@@ -100,7 +100,7 @@ class TestFluidDB(unittest.TestCase):
         # make sure the result has the expected description field
         self.assertTrue(result[1].has_key('description'))
         # finally we need to make sure that primitive values returned from
-        # fluidDB are turned from their json representation to their 
+        # fluidDB are turned from their json representation to their
         # Pythonic form
         new_namespace = str(uuid.uuid4())
         new_tag = str(uuid.uuid4())
@@ -119,7 +119,7 @@ class TestFluidDB(unittest.TestCase):
         self.assertTrue(result[1].has_key('id'))
         path = '/'+'/'.join(['objects', ns_id, 'test', new_namespace,
                              new_tag])
-        primitives = [1, 1.1, u'foo', True, None, ['a', 'b', u'c']]
+        primitives = [1, 1.1, u'foo', ['a', 'b', u'c'], True, None, ]
         for primitive in primitives:
             result = fluiddb.call('PUT', path, primitive)
             self.assertEqual('204', result[0]['status'])
@@ -129,6 +129,12 @@ class TestFluidDB(unittest.TestCase):
             self.assertEqual('application/vnd.fluiddb.value+json',
                              result[0]['content-type'])
             self.assertTrue(isinstance(result[1], type(primitive)))
+        # check the new /values GET works
+        result = fluiddb.call('GET', '/values', tags=['fluiddb/about',
+            'test/%s/%s' % (new_namespace, new_tag)],
+            query='has test/%s/%s' % (new_namespace, new_tag))
+        self.assertEqual('200', result[0]['status'])
+        self.assertTrue(result[1].has_key('results'))
         # Housekeeping
         fluiddb.call('DELETE',
                      '/tags/test/' + new_namespace + '/' + new_tag)
@@ -164,7 +170,7 @@ class TestFluidDB(unittest.TestCase):
         path = '/'+'/'.join(['objects', ns_id, 'test', new_namespace,
                              new_tag])
         # Make sure that primitive types are json encoded properly with
-        # the correct mime-type, dicts are translated to json, the 
+        # the correct mime-type, dicts are translated to json, the
         # mime-type argument for opaque types is used properly and if
         # no mime-type is supplied and the previous checks are not met
         # an appropriate exception is raised.
@@ -172,7 +178,7 @@ class TestFluidDB(unittest.TestCase):
         for primitive in primitives:
             result = fluiddb.call('PUT', path, primitive)
             self.assertEqual('204', result[0]['status'])
-            # call HEAD verb on that tag value to get the mime-type from 
+            # call HEAD verb on that tag value to get the mime-type from
             # FluidDB
             result = fluiddb.call('HEAD', path)
             self.assertEqual('application/vnd.fluiddb.value+json',
@@ -188,7 +194,7 @@ class TestFluidDB(unittest.TestCase):
                               'World!</h1></body></html>', 'text/html')
         result = fluiddb.call('HEAD', path)
         self.assertEqual('text/html', result[0]['content-type'])
-        # unspecified mime-type on a non-primitive value results in an 
+        # unspecified mime-type on a non-primitive value results in an
         # exception
         self.assertRaises(TypeError, fluiddb.call, 'PUT', path, object())
         # Housekeeping
@@ -206,6 +212,15 @@ class TestFluidDB(unittest.TestCase):
         self.assertTrue(result[1].has_key('id'))
         result = fluiddb.call('DELETE', '/namespaces/test/'+new_namespace)
         self.assertEqual('204', result[0]['status'])
+
+    def test_custom_headers(self):
+        custom_headers = {'Origin': 'http://foo.com'}
+        result = fluiddb.call('GET', '/users/test',
+            custom_headers=custom_headers)
+        self.assertEqual('200', result[0]['status'])
+        self.assertEqual('http://foo.com',
+            result[0]['access-control-allow-origin'])
+
 
 if __name__ == '__main__':
     unittest.main()

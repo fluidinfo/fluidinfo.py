@@ -16,6 +16,7 @@ if sys.version_info < (2, 6):
 else:
     import json
 
+
 # There are currently two instances of FluidDB. MAIN is the default standard
 # instance and SANDBOX is a scratch version for testing purposes. Data in
 # SANDBOX can (and will) be blown away.
@@ -23,13 +24,16 @@ MAIN = 'https://fluiddb.fluidinfo.com'
 SANDBOX = 'https://sandbox.fluidinfo.com'
 instance = MAIN
 
+
 ITERABLE_TYPES = set((list, tuple))
 SERIALIZABLE_TYPES = set((types.NoneType, bool, int, float, str, unicode, list,
                           tuple))
 
+
 global_headers = {
     'Accept': '*/*',
 }
+
 
 def login(username, password):
     """
@@ -39,6 +43,7 @@ def login(username, password):
     auth = 'Basic ' + userpass.encode('base64').strip()
     global_headers['Authorization'] = auth
 
+
 def logout():
     """
     Removes the 'Authorization' token from the headers passed into FluidDB
@@ -46,7 +51,8 @@ def logout():
     if global_headers.has_key('Authorization'):
         del global_headers['Authorization']
 
-def call(method, path, body=None, mime=None, **kw):
+
+def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     """
     Makes a call to FluidDB
 
@@ -56,21 +62,32 @@ def call(method, path, body=None, mime=None, **kw):
     primitive types will also be jsonified)
     mime = The mime-type for the body of the request - will override the
     jsonification of primitive types
+    tags = The list of tags to return if the request is to values
+    headers = A dictionary containing additional headers to send in the request
     **kw = Query-string arguments to be appended to the URL
     """
     http = httplib2.Http()
     url = instance + urllib.quote(path)
     if kw:
         url = url + '?' + urllib.urlencode(kw)
+    if tags and path.startswith('/values'):
+        # /values based requests must have a tags list to append to the
+        # url args (which are passed in as **kw), so append them so everything
+        # gets urlencoded correctly below
+        url = url + '&' + urllib.urlencode([('tag', tag) for tag in tags])
+    # set the headers
     headers = global_headers.copy()
+    if custom_headers:
+        headers.update(custom_headers)
     # Make sure the correct content-type header is sent
     if isinstance(body, dict):
         # jsonify dicts
         headers['content-type'] = 'application/json'
         body = json.dumps(body)
-    elif method.upper() == 'PUT' and path.startswith('/objects/'):
-        # A PUT to an "/objects/" resource means that we're handling 
-        # tag-values. Make sure we handle primitive/opaque value types
+    elif method.upper() == 'PUT' and (
+        path.startswith('/objects/' or path.startswith('/about'))):
+        # A PUT to an "/objects/" or "/about/" resource means that we're
+        # handling tag-values. Make sure we handle primitive/opaque value types
         # properly.
         if mime:
             # opaque value (just set the mime type)
@@ -92,6 +109,7 @@ def call(method, path, body=None, mime=None, **kw):
     else:
         result = content
     return response, result
+
 
 def isprimitive(body):
     """
