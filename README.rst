@@ -89,6 +89,12 @@ If the body argument isn't a Python dictionary then you can only be PUTting a ta
 
     >>> headers, content = fluiddb.call('PUT', '/about/an-example/test/foo', body='<html><body>Hello, World!</body></html>', mime='text/html')
 
+To send URI arguments simply append them as arguments to the call() method::
+
+    >>> headers, content = fluiddb.call('GET', '/permissions/namespaces/test', action='create')
+
+The "action = 'create'" argument will be turned into "?action=create" appended to the end of the URL sent to FluidDB.
+
 Furthermore, if you want to send some custom headers to FluidDB (useful for testing purposes) then supply them as a dictionary via the custom_headers argument::
 
     >>> headers, content = fluiddb.call('GET', '/users/test', custom_headers={'Origin': 'http://foo.com'})
