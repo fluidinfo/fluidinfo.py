@@ -48,7 +48,7 @@ def logout():
     """
     Removes the 'Authorization' token from the headers passed into FluidDB
     """
-    if global_headers.has_key('Authorization'):
+    if 'Authorization' in global_headers:
         del global_headers['Authorization']
 
 
@@ -121,8 +121,10 @@ def isprimitive(body):
     See:
 
     http://doc.fluidinfo.com/fluidDB/api/tag-values.html
+
     &
-    http://doc.fluidinfo.com/fluidDB/api/http.html#payloads-containing-tag-values
+
+    http://bit.ly/hmrMzT
 
     For an explanation of the difference between primitive and opaque
     values.
