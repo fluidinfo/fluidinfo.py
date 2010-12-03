@@ -57,7 +57,8 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     Makes a call to FluidDB
 
     method = HTTP verb. e.g. PUT, POST, GET, DELETE or HEAD
-    path = Path appended to the instance to locate the resource in FluidDB
+    path = Path appended to the instance to locate the resource in FluidDB this
+        can be either a string OR a list of path elements.
     body = The request body (a dictionary will be translated to json,
     primitive types will also be jsonified)
     mime = The mime-type for the body of the request - will override the
@@ -67,7 +68,8 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     **kw = Query-string arguments to be appended to the URL
     """
     http = httplib2.Http()
-    url = instance + urllib.quote(path)
+    # build the URL
+    url = build_url(path)
     if kw:
         url = url + '?' + urllib.urlencode(kw)
     if tags and path.startswith('/values'):
@@ -133,3 +135,17 @@ def isprimitive(body):
         return True
     else:
         return False
+
+
+def build_url(path):
+    """
+    Given a path that is either a string or list of path elements, will return
+    the correct URL
+    """
+    url = instance
+    if isinstance(path, list):
+        url += '/'
+        url += '/'.join([urllib.quote(element, safe='') for element in path])
+    else:
+        url += urllib.quote(path)
+    return url

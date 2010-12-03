@@ -8,6 +8,10 @@ USERNAME = 'test'
 PASSWORD = 'test'
 
 class TestFluidDB(unittest.TestCase):
+    """
+    The names of the test methods are pretty self-explanatory. I've made sure
+    to comment what's I'm testing if there are various test cases.
+    """
 
     def setUp(self):
         # Only test against the SANDBOX
@@ -213,6 +217,9 @@ class TestFluidDB(unittest.TestCase):
         result = fluiddb.call('DELETE', '/namespaces/test/'+new_namespace)
         self.assertEqual('204', result[0]['status'])
 
+    # The following test various behaviours of arguments passed into call that
+    # don't depend upon the HTTP method being used.
+
     def test_custom_headers(self):
         custom_headers = {'Origin': 'http://foo.com'}
         result = fluiddb.call('GET', '/users/test',
@@ -220,6 +227,23 @@ class TestFluidDB(unittest.TestCase):
         self.assertEqual('200', result[0]['status'])
         self.assertEqual('http://foo.com',
             result[0]['access-control-allow-origin'])
+
+    def test_build_url(self):
+        # test with a list
+        path = ['about', 'an/- object', 'test', 'foo']
+        expected = fluiddb.instance + '/about/an%2F-%20object/test/foo'
+        actual = fluiddb.build_url(path)
+        self.assertEqual(expected, actual)
+        # test with a string
+        path = '/users/test'
+        expected = fluiddb.instance + '/users/test'
+        actual = fluiddb.build_url(path)
+        self.assertEqual(expected, actual)
+        # test with unicode (umlauts ftw)
+        path = '/users/C\xfc\xe4h'
+        expected = fluiddb.instance + '/users/C%FC%E4h'
+        actual = fluiddb.build_url(path)
+        self.assertEqual(expected, actual)
 
 
 if __name__ == '__main__':

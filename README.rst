@@ -66,7 +66,7 @@ The most important function provided by the fluiddb module is call(). You must s
     'content-type': 'application/json'}, {u'name': u'test',
     u'id': u'8cc64c7d-a155-4246-ab2b-564f87fd9222'})
 
-Notice how call() returns a list containing two items:
+Notice how call() returns a tuple containing two items:
 
 * The header dictionary
 * The content of the response (if there is any)
@@ -74,6 +74,12 @@ Notice how call() returns a list containing two items:
 Often it is simply better to do the following::
 
     >>> headers, content = fluiddb.call('GET', '/users/test')
+
+It is also possible to send the path as a list of path elements::
+
+    >>> headers, content = fluiddb.call('GET', ['about','yes/no','test','foo'])
+
+Which will ensure that each element is correctly percent encoded even if it includes problem characters like slash: '/' (essential for being able to use the "about" based API.
 
 If the API involves sending json data to FluidDB simply send the appropriate Python dict object and fluiddb.py will jsonify it appropriately for you::
 
