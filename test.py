@@ -245,6 +245,33 @@ class TestFluidDB(unittest.TestCase):
         actual = fluiddb.build_url(path)
         self.assertEqual(expected, actual)
 
+    def test_put_about_type_header(self):
+        """
+        There was a bug where the fluiddb.py wasn't creating the correct
+        content-type header when PUTting to an about tag value, this test
+        re-creates it.
+        """
+        # ensures we have an object about foo
+        headers, response = fluiddb.call('GET', '/about/foo')
+        # create a one off tag to use for the purposes of testing
+        fluiddb.login(USERNAME, PASSWORD)
+        new_tag = str(uuid.uuid4())
+        tag_body = {'description': 'a test tag', 'name': new_tag,
+                    'indexed': False}
+        # create a tag to use in a bit
+        result = fluiddb.call('POST', '/tags/test', tag_body)
+        self.assertEqual('201', result[0]['status'])
+        self.assertTrue(result[1].has_key('id'))
+        # make sure we can PUT using the about API
+        try:
+            header, content = fluiddb.call('PUT', '/about/foo/test/'+new_tag,
+                'this is a test')
+            # check that it worked
+            self.assertEqual('204', header['status'])
+        finally:
+            # Housekeeping
+            fluiddb.call('DELETE', '/tags/test/' + new_tag)
+
 
 if __name__ == '__main__':
     unittest.main()
