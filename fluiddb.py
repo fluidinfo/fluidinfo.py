@@ -87,7 +87,7 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
         headers['content-type'] = 'application/json'
         body = json.dumps(body)
     elif method.upper() == 'PUT' and (
-        path.startswith('/objects/' or path.startswith('/about'))):
+        path.startswith('/objects/') or path.startswith('/about')):
         # A PUT to an "/objects/" or "/about/" resource means that we're
         # handling tag-values. Make sure we handle primitive/opaque value types
         # properly.
