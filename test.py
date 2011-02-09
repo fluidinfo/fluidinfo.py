@@ -201,6 +201,10 @@ class TestFluidDB(unittest.TestCase):
         # unspecified mime-type on a non-primitive value results in an
         # exception
         self.assertRaises(TypeError, fluiddb.call, 'PUT', path, object())
+        # make sure it's possible to PUT a tag value using a list based path
+        pathAsList = ['objects', ns_id, 'test', new_namespace, new_tag]
+        result = fluiddb.call('PUT', pathAsList, 'foo')
+        self.assertEqual('204', result[0]['status'])
         # Housekeeping
         fluiddb.call('DELETE',
                      '/tags/test/' + new_namespace + '/' + new_tag)
