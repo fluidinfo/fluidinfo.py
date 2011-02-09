@@ -81,6 +81,10 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     headers = global_headers.copy()
     if custom_headers:
         headers.update(custom_headers)
+    # make sure the path is a string for the following elif check for PUT
+    # based requests
+    if isinstance(path, list):
+        path = '/'+'/'.join(path)
     # Make sure the correct content-type header is sent
     if isinstance(body, dict):
         # jsonify dicts
