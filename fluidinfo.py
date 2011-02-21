@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-A very thin wrapper on top of the FluidDB RESTful API
+A very thin wrapper on top of the Fluidinfo RESTful API
 
 Copyright (c) 2009-2010 Seo Sanghyeon, Nicholas Tollervey and others
 
@@ -17,7 +17,7 @@ else:
     import json
 
 
-# There are currently two instances of FluidDB. MAIN is the default standard
+# There are currently two instances of Fluidinfo. MAIN is the default standard
 # instance and SANDBOX is a scratch version for testing purposes. Data in
 # SANDBOX can (and will) be blown away.
 MAIN = 'https://fluiddb.fluidinfo.com'
@@ -46,7 +46,7 @@ def login(username, password):
 
 def logout():
     """
-    Removes the 'Authorization' token from the headers passed into FluidDB
+    Removes the 'Authorization' token from the headers passed into Fluidinfo
     """
     if 'Authorization' in global_headers:
         del global_headers['Authorization']
@@ -54,15 +54,15 @@ def logout():
 
 def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     """
-    Makes a call to FluidDB
+    Makes a call to Fluidinfo
 
     method = HTTP verb. e.g. PUT, POST, GET, DELETE or HEAD
-    path = Path appended to the instance to locate the resource in FluidDB this
-        can be either a string OR a list of path elements.
+    path = Path appended to the instance to locate the resource in Fluidinfo
+        this can be either a string OR a list of path elements.
     body = The request body (a dictionary will be translated to json,
-    primitive types will also be jsonified)
+        primitive types will also be jsonified)
     mime = The mime-type for the body of the request - will override the
-    jsonification of primitive types
+        jsonification of primitive types
     tags = The list of tags to return if the request is to values
     headers = A dictionary containing additional headers to send in the request
     **kw = Query-string arguments to be appended to the URL
@@ -104,7 +104,7 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
             headers['content-type'] = 'application/vnd.fluiddb.value+json'
             body = json.dumps(body)
         else:
-            # No way to work out what content-type to send to FluidDB so
+            # No way to work out what content-type to send to Fluidinfo so
             # bail out.
             raise TypeError("You must supply a mime-type")
     response, content = http.request(url, method, body, headers)
