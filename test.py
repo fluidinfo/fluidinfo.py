@@ -20,37 +20,37 @@ class TestFluidinfo(unittest.TestCase):
 
     def test_login(self):
         # we're not logged in but able to do anonymous calls
-        result = fluidinfo.call('GET', '/users/test')
+        result = fluidinfo.get('/users/test')
         self.assertEqual('200', result[0]['status'])
         new_namespace = str(uuid.uuid4())
         # and we can't do anything that requires us to be authenticated
-        result = fluidinfo.call('POST', '/namespaces/test',
+        result = fluidinfo.post('/namespaces/test',
                              {'description': 'will fail',
                               'name': new_namespace})
         self.assertEqual('401', result[0]['status'])
         # Now lets log in with *bad* credentials
         fluidinfo.login(USERNAME, PASSWORD + 'bad_password')
-        result = fluidinfo.call('GET', '/users/test')
+        result = fluidinfo.get('/users/test')
         # Unauthorised due to bad credentials
         self.assertEqual('401', result[0]['status'])
         # Try again with the good case
         fluidinfo.login(USERNAME, PASSWORD)
-        result = fluidinfo.call('GET', '/users/test')
+        result = fluidinfo.get('/users/test')
         self.assertEqual('200', result[0]['status'])
 
     def test_logout(self):
         # Lets first log in and check we're good to go
         fluidinfo.login(USERNAME, PASSWORD)
-        result = fluidinfo.call('GET', '/users/test')
+        result = fluidinfo.get('/users/test')
         self.assertEqual('200', result[0]['status'])
         # Log out (this should clear the Authorization header)
         fluidinfo.logout()
         # We should still be able to do anonymous calls
-        result = fluidinfo.call('GET', '/users/test')
+        result = fluidinfo.get('/users/test')
         self.assertEqual('200', result[0]['status'])
         # but we can't do anything that requires us to be authenticated
         new_namespace = str(uuid.uuid4())
-        result = fluidinfo.call('POST', '/namespaces/test',
+        result = fluidinfo.post('/namespaces/test',
                              {'description': 'will fail',
                               'name': new_namespace})
         self.assertEqual('401', result[0]['status'])
@@ -85,7 +85,7 @@ class TestFluidinfo(unittest.TestCase):
         ns_body = {'description': 'a test namespace',
                    'name': new_namespace}
         # Make sure that if the body is a dict it gets translated to json
-        result = fluidinfo.call('POST', '/namespaces/test', ns_body)
+        result = fluidinfo.post('/namespaces/test', ns_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
         # Housekeeping
@@ -94,7 +94,7 @@ class TestFluidinfo(unittest.TestCase):
     def test_call_GET(self):
         fluidinfo.login(USERNAME, PASSWORD)
         # No query string args to append
-        result = fluidinfo.call('GET', '/namespaces/test')
+        result = fluidinfo.get('/namespaces/test')
         self.assertEqual('200', result[0]['status'])
         # make sure the resulting json is turned into a Python dictionary
         self.assertTrue(isinstance(result[1], dict))
@@ -102,7 +102,7 @@ class TestFluidinfo(unittest.TestCase):
         self.assertTrue(result[1].has_key('id'))
         # The same call WITH query string args to append to the URL
         # eg we'll get /namespaces/test?returnDescription=True as the path
-        result = fluidinfo.call('GET', '/namespaces/test', None, None,
+        result = fluidinfo.get('/namespaces/test', None, None,
                               returnDescription = True)
         self.assertEqual('200', result[0]['status'])
         # make sure the result has the expected description field
@@ -117,11 +117,11 @@ class TestFluidinfo(unittest.TestCase):
         tag_body = {'description': 'a test tag', 'name': new_tag,
                     'indexed': False}
         # create a namespace and tag to use in a bit
-        result = fluidinfo.call('POST', '/namespaces/test', ns_body)
+        result = fluidinfo.post('/namespaces/test', ns_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
         ns_id = result[1]['id'] # for later use
-        result = fluidinfo.call('POST', '/tags/test/' + new_namespace,
+        result = fluidinfo.post('/tags/test/' + new_namespace,
                               tag_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
@@ -129,32 +129,31 @@ class TestFluidinfo(unittest.TestCase):
                              new_tag])
         primitives = [1, 1.1, u'foo', ['a', 'b', u'c'], True, None, ]
         for primitive in primitives:
-            result = fluidinfo.call('PUT', path, primitive)
+            result = fluidinfo.put(path, primitive)
             self.assertEqual('204', result[0]['status'])
             # GET the new tag value and check it gets translated back to
             # the correct type
-            result = fluidinfo.call('GET', path)
+            result = fluidinfo.get(path)
             self.assertEqual('application/vnd.fluiddb.value+json',
                              result[0]['content-type'])
             self.assertTrue(isinstance(result[1], type(primitive)))
         # check the new /values GET works
-        result = fluidinfo.call('GET', '/values', tags=['fluiddb/about',
+        result = fluidinfo.get('/values', tags=['fluiddb/about',
             'test/%s/%s' % (new_namespace, new_tag)],
             query='has test/%s/%s' % (new_namespace, new_tag))
         self.assertEqual('200', result[0]['status'])
         self.assertTrue(result[1].has_key('results'))
         # Housekeeping
-        fluidinfo.call('DELETE',
-                     '/tags/test/' + new_namespace + '/' + new_tag)
-        fluidinfo.call('DELETE', '/namespaces/test/'+new_namespace)
+        fluidinfo.delete('/tags/test/' + new_namespace + '/' + new_tag)
+        fluidinfo.delete('/namespaces/test/'+new_namespace)
 
     def test_call_HEAD(self):
         fluidinfo.login(USERNAME, PASSWORD)
         # Grab an object ID for a user for us to use in the HEAD path
-        result = fluidinfo.call('GET', '/users/test')
+        result = fluidinfo.get('/users/test')
         obj_id = result[1]['id']
         path = '/objects/%s/fluiddb/users/username' % obj_id
-        result = fluidinfo.call('HEAD', path)
+        result = fluidinfo.head(path)
         self.assertEqual('200', result[0]['status'])
         self.assertFalse(result[1]) # no response body with HEAD call
 
@@ -167,12 +166,11 @@ class TestFluidinfo(unittest.TestCase):
         tag_body = {'description': 'a test tag', 'name': new_tag,
                     'indexed': False}
         # create a namespace and tag to use in a bit
-        result = fluidinfo.call('POST', '/namespaces/test', ns_body)
+        result = fluidinfo.post('/namespaces/test', ns_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
         ns_id = result[1]['id'] # for later use
-        result = fluidinfo.call('POST', '/tags/test/' + new_namespace,
-                              tag_body)
+        result = fluidinfo.post('/tags/test/' + new_namespace, tag_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
         path = '/'+'/'.join(['objects', ns_id, 'test', new_namespace,
@@ -184,45 +182,44 @@ class TestFluidinfo(unittest.TestCase):
         # an appropriate exception is raised.
         primitives = [1, 1.1, 'foo', u'foo', True, None, ['a', 'b', u'c']]
         for primitive in primitives:
-            result = fluidinfo.call('PUT', path, primitive)
+            result = fluidinfo.put(path, primitive)
             self.assertEqual('204', result[0]['status'])
             # call HEAD verb on that tag value to get the mime-type from
             # Fluidinfo
-            result = fluidinfo.call('HEAD', path)
+            result = fluidinfo.head(path)
             self.assertEqual('application/vnd.fluiddb.value+json',
                              result[0]['content-type'])
         # dicts are json encoded
-        result = fluidinfo.call('PUT', path, {'foo': 'bar'})
+        result = fluidinfo.put(path, {'foo': 'bar'})
         # check again with HEAD verb
-        result = fluidinfo.call('HEAD', path)
+        result = fluidinfo.head(path)
         self.assertEqual('application/json', result[0]['content-type'])
         # Make sure that the body and mime args work as expected (mime
         # overrides the primitive string type making the value opaque)
-        result = fluidinfo.call('PUT', path, '<html><body><h1>Hello,'\
+        result = fluidinfo.put(path, '<html><body><h1>Hello,'\
                               'World!</h1></body></html>', 'text/html')
-        result = fluidinfo.call('HEAD', path)
+        result = fluidinfo.head(path)
         self.assertEqual('text/html', result[0]['content-type'])
         # unspecified mime-type on a non-primitive value results in an
         # exception
         self.assertRaises(TypeError, fluidinfo.call, 'PUT', path, object())
         # make sure it's possible to PUT a tag value using a list based path
         pathAsList = ['objects', ns_id, 'test', new_namespace, new_tag]
-        result = fluidinfo.call('PUT', pathAsList, 'foo')
+        result = fluidinfo.put(pathAsList, 'foo')
         self.assertEqual('204', result[0]['status'])
         # Housekeeping
-        fluidinfo.call('DELETE',
-                     '/tags/test/' + new_namespace + '/' + new_tag)
-        fluidinfo.call('DELETE', '/namespaces/test/'+new_namespace)
+        fluidinfo.delete('/tags/test/' + new_namespace + '/' + new_tag)
+        fluidinfo.delete('/namespaces/test/' + new_namespace)
 
     def test_call_DELETE(self):
         fluidinfo.login(USERNAME, PASSWORD)
         # Simply create a new namespace and then delete it
         new_namespace = str(uuid.uuid4())
         body = {'description': 'a test namespace', 'name': new_namespace}
-        result = fluidinfo.call('POST', '/namespaces/test', body)
+        result = fluidinfo.post('/namespaces/test', body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
-        result = fluidinfo.call('DELETE', '/namespaces/test/'+new_namespace)
+        result = fluidinfo.delete('/namespaces/test/' + new_namespace)
         self.assertEqual('204', result[0]['status'])
 
     # The following test various behaviours of arguments passed into call that
@@ -230,7 +227,7 @@ class TestFluidinfo(unittest.TestCase):
 
     def test_custom_headers(self):
         custom_headers = {'Origin': 'http://foo.com'}
-        result = fluidinfo.call('GET', '/users/test',
+        result = fluidinfo.get('/users/test',
             custom_headers=custom_headers)
         self.assertEqual('200', result[0]['status'])
         self.assertEqual('http://foo.com',
@@ -260,25 +257,25 @@ class TestFluidinfo(unittest.TestCase):
         re-creates it.
         """
         # ensures we have an object about foo
-        headers, response = fluidinfo.call('GET', '/about/foo')
+        headers, response = fluidinfo.get('/about/foo')
         # create a one off tag to use for the purposes of testing
         fluidinfo.login(USERNAME, PASSWORD)
         new_tag = str(uuid.uuid4())
         tag_body = {'description': 'a test tag', 'name': new_tag,
                     'indexed': False}
         # create a tag to use in a bit
-        result = fluidinfo.call('POST', '/tags/test', tag_body)
+        result = fluidinfo.post('/tags/test', tag_body)
         self.assertEqual('201', result[0]['status'])
         self.assertTrue(result[1].has_key('id'))
         # make sure we can PUT using the about API
         try:
-            header, content = fluidinfo.call('PUT', '/about/foo/test/'+new_tag,
+            header, content = fluidinfo.put('/about/foo/test/'+new_tag,
                 'this is a test')
             # check that it worked
             self.assertEqual('204', header['status'])
         finally:
             # Housekeeping
-            fluidinfo.call('DELETE', '/tags/test/' + new_tag)
+            fluidinfo.delete('/tags/test/' + new_tag)
 
 
 if __name__ == '__main__':

@@ -52,6 +52,41 @@ def logout():
         del global_headers['Authorization']
 
 
+def get(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+    """
+    Convenience method for fluidinfo.call('GET', ...)
+    """
+    return call('GET', path, body, mime, tags, custom_headers, **kw)
+
+
+def post(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+    """
+    Convenience method for fluidinfo.call('POST', ...)
+    """
+    return call('POST', path, body, mime, tags, custom_headers, **kw)
+
+
+def put(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+    """
+    Convenience method for fluidinfo.call('PUT', ...)
+    """
+    return call('PUT', path, body, mime, tags, custom_headers, **kw)
+
+
+def delete(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+    """
+    Convenience method for fluidinfo.call('DELETE', ...)
+    """
+    return call('DELETE', path, body, mime, tags, custom_headers, **kw)
+
+
+def head(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+    """
+    Convenience method for fluidinfo.call('HEAD', ...)
+    """
+    return call('HEAD', path, body, mime, tags, custom_headers, **kw)
+
+
 def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     """
     Makes a call to Fluidinfo
