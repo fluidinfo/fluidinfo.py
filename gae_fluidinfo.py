@@ -8,13 +8,13 @@ See README, AUTHORS and LICENSE for more information
 """
 
 import sys
-import httplib2
 import urllib
 import types
 if sys.version_info < (2, 6):
     import simplejson as json
 else:
     import json
+from google.appengine.api import urlfetch
 
 
 # There are currently two instances of Fluidinfo. MAIN is the default standard
@@ -34,7 +34,6 @@ global_headers = {
     'Accept': '*/*',
 }
 
-
 def login(username, password):
     """
     Creates the 'Authorization' token from the given username and password.
@@ -52,42 +51,47 @@ def logout():
         del global_headers['Authorization']
 
 
-def get(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+def get(path, body=None, mime=None, tags=[], custom_headers={},
+        async=False, **kw):
     """
     Convenience method for fluidinfo.call('GET', ...)
     """
-    return call('GET', path, body, mime, tags, custom_headers, **kw)
+    return call('GET', path, body, mime, tags, custom_headers, async, **kw)
 
 
-def post(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+def post(path, body=None, mime=None, tags=[], custom_headers={},
+         async=False, **kw):
     """
     Convenience method for fluidinfo.call('POST', ...)
     """
-    return call('POST', path, body, mime, tags, custom_headers, **kw)
+    return call('POST', path, body, mime, tags, custom_headers, async, **kw)
 
 
-def put(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+def put(path, body=None, mime=None, tags=[], custom_headers={},
+        async=False, **kw):
     """
     Convenience method for fluidinfo.call('PUT', ...)
     """
-    return call('PUT', path, body, mime, tags, custom_headers, **kw)
+    return call('PUT', path, body, mime, tags, custom_headers, async, **kw)
 
 
-def delete(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+def delete(path, body=None, mime=None, tags=[], custom_headers={},
+           async=False, **kw):
     """
     Convenience method for fluidinfo.call('DELETE', ...)
     """
-    return call('DELETE', path, body, mime, tags, custom_headers, **kw)
+    return call('DELETE', path, body, mime, tags, custom_headers, async, **kw)
 
 
-def head(path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+def head(path, body=None, mime=None, tags=[], custom_headers={},
+         async=False, **kw):
     """
     Convenience method for fluidinfo.call('HEAD', ...)
     """
-    return call('HEAD', path, body, mime, tags, custom_headers, **kw)
+    return call('HEAD', path, body, mime, tags, custom_headers, async, **kw)
 
-
-def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
+def call(method, path, body=None, mime=None, tags=[], custom_headers={},
+         async=False, **kw):
     """
     Makes a call to Fluidinfo
 
@@ -102,7 +106,6 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     headers = A dictionary containing additional headers to send in the request
     **kw = Query-string arguments to be appended to the URL
     """
-    http = httplib2.Http()
     # build the URL
     url = build_url(path)
     if kw:
@@ -142,15 +145,24 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
             # No way to work out what content-type to send to Fluidinfo so
             # bail out.
             raise TypeError("You must supply a mime-type")
-    response, content = http.request(url, method, body, headers)
-    if ((response['content-type'] == 'application/json' or
-        response['content-type'] == 'application/vnd.fluiddb.value+json')
-        and content):
-        result = json.loads(content)
-    else:
-        result = content
-    return response, result
+    rpc = urlfetch.create_rpc()
+    urlfetch.make_fetch_call(rpc, url, body, method, headers)
+    if async:
+        return rpc
+    return result(rpc)
 
+def result(rpc):
+    """
+    Retrieves the response object from the urlfetch rpc object.
+    """
+    try:
+        response = rpc.get_result()
+        if (response.content and (response.headers['content-type'] in
+            ['application/json', 'application/vnd.fluiddb.value+json'])):
+            response.content = json.loads(response.content)
+        return response
+    except urlfetch.Error:
+        return None
 
 def isprimitive(body):
     """
