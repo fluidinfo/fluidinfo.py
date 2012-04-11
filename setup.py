@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='fluidinfo.py',
-      version='1.1.3',
-      description="A thin wrapper for Fluidinfo's RESTful API (formerly"\
-        " fluiddb.py)",
+      version='1.2.0',
+      description="A thin wrapper for Fluidinfo's RESTful API",
       author='Nicholas Tollervey (based upon work by Sanghyeon Seo)',
       author_email='ntoll@ntoll.org',
       url='http://fluidinfo.com',
       py_modules=['fluidinfo',],
       license='MIT',
-      requires=['httplib2',],
+      install_requires=['requests',],
       long_description=open('README.rst').read(),
       classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Web Environment',

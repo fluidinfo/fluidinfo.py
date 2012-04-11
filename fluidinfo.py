@@ -8,7 +8,7 @@ See README, AUTHORS and LICENSE for more information
 """
 
 import sys
-import httplib2
+import requests
 import urllib
 import types
 if sys.version_info < (2, 6):
@@ -102,7 +102,6 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
     headers = A dictionary containing additional headers to send in the request
     **kw = Query-string arguments to be appended to the URL
     """
-    http = httplib2.Http()
     # build the URL
     url = build_url(path)
     if kw:
@@ -142,14 +141,17 @@ def call(method, path, body=None, mime=None, tags=[], custom_headers={}, **kw):
             # No way to work out what content-type to send to Fluidinfo so
             # bail out.
             raise TypeError("You must supply a mime-type")
-    response, content = http.request(url, method, body, headers)
-    if ((response['content-type'] == 'application/json' or
-        response['content-type'] == 'application/vnd.fluiddb.value+json')
-        and content):
-        result = json.loads(content)
+    response = requests.request(method, url, data=body, headers=headers)
+    if ((response.headers['content-type'] == 'application/json' or
+        response.headers['content-type'] == 'application/' +
+            'vnd.fluiddb.value+json')
+        and response.text):
+        result = json.loads(response.text)
     else:
-        result = content
-    return response, result
+        result = response.text
+    summary = response.headers
+    summary['status'] = str(response.status_code)
+    return summary, result
 
 
 def isprimitive(body):
